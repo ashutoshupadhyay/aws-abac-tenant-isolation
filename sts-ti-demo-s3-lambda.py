@@ -1,5 +1,6 @@
 import json
 import os
+import time 
 
 def lambda_handler(event, context):
     import boto3
@@ -11,10 +12,7 @@ def lambda_handler(event, context):
     except:
         return {
             'statusCode': 400,
-            'statusDesc': 'Lambda failed',
-            'assumeRole': '',
-            'eventDump': event,
-            'bodyText': 'Error in reading parameters'
+            'body': 'Error in reading parameters'
         }
 
     prefix_of_role  =   'assumeRole'
@@ -29,8 +27,7 @@ def lambda_handler(event, context):
 
     # Call the assume_role method of the STSConnection object and pass the role
     # ARN and a role session name.
-    RoleSessionName = now.strftime("%d/%m/%Y %H:%M:%S")
-    print("date and time =", dt_string)	
+    RoleSessionName = 'AssumeRoleSession' + str(time.time()).split(".")[0] + str(time.time()).split(".")[1]
     try:
         print('role_to_assume =', role_to_assume)
         assumed_role_object = sts_client.assume_role(
@@ -40,10 +37,7 @@ def lambda_handler(event, context):
     except:
         return {
             'statusCode': 400,
-            'statusDesc': 'Lambda failed',
-            'assumeRole': role_to_assume,
-            'eventDump': event,
-            'bodyText': 'Error in assuming the role ' + role_to_assume + ' in account ' + account_of_role
+            'body': 'Error in assuming the role ' + role_to_assume + ' in account ' + account_of_role
         }
 
     # From the response that contains the assumed role, get the temporary 
@@ -70,8 +64,5 @@ def lambda_handler(event, context):
 
     return {
         'statusCode': 200,
-        'statusDesc': 'Lambda success',
-        'assumeRole': role_to_assume,
-        'eventDump': event,
-        'bodyText': body
+        'body': body
     }
