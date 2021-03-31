@@ -18,9 +18,7 @@ def lambda_handler(event, context):
     prefix_of_role  =   'assumeRole'
     file_name       =   'tenant.info' + '-' + data_tenant_id
 
-    #### NEW CODE
-    # create an STS client object that represents a live connection to the 
-    # STS service
+    # create an STS client object that represents a live connection to the STS service
     sts_client = boto3.client('sts')
     account_of_role = sts_client.get_caller_identity()['Account']
     role_to_assume  =   'arn:aws:iam::' + account_of_role + ':role/' + prefix_of_role + '-' + login_tenant_id
@@ -29,11 +27,11 @@ def lambda_handler(event, context):
     # ARN and a role session name.
     RoleSessionName = 'AssumeRoleSession' + str(time.time()).split(".")[0] + str(time.time()).split(".")[1]
     try:
-        print('role_to_assume =', role_to_assume)
         assumed_role_object = sts_client.assume_role(
-            RoleArn=role_to_assume, 
-            RoleSessionName="AssumeRoleSession1", 
-            DurationSeconds = 900)
+            RoleArn         = role_to_assume, 
+            RoleSessionName = RoleSessionName, 
+            DurationSeconds = 900) #15 minutes
+
     except:
         return {
             'statusCode': 400,
@@ -44,25 +42,22 @@ def lambda_handler(event, context):
     # credentials that can be used to make subsequent API calls
     credentials=assumed_role_object['Credentials']
     
-    # Use the temporary credentials that AssumeRole returns to make a 
-    # connection to Amazon S3  
+    # Use the temporary credentials that AssumeRole returns to make a connection to Amazon S3  
     s3_resource=boto3.resource(
         's3',
         aws_access_key_id=credentials['AccessKeyId'],
         aws_secret_access_key=credentials['SecretAccessKey'],
         aws_session_token=credentials['SessionToken']
     )
-    ####
 
     try:
         obj = s3_resource.Object(bucket_name, data_tenant_id + "/" + file_name)
-        body = obj.get()['Body'].read()
+        return {
+            'statusCode': 200,
+            'body': obj.get()['Body'].read()
+        }
     except:
-        body = 'error in reading s3://' + bucket_name + '/' + data_tenant_id + '/' + file_name
-
-    print (body)
-
-    return {
-        'statusCode': 200,
-        'body': body
-    }
+        return {
+            'statusCode': 400,
+            'body': 'error in reading s3://' + bucket_name + '/' + data_tenant_id + '/' + file_name
+        }
